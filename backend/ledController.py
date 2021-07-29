@@ -26,21 +26,31 @@ def displayScrollingText(text, config):
     scrollingTextOperation = 'sudo ./bin/text-scroller -f ./fonts/10x20.bdf -C159,226,191'
     return executeCommand(scrollingTextOperation, text, config)
 
+# Used to track the list of processes
 processes = []
 """Execute a command based on the operation and parameters given"""
 def executeCommand(operation, parameters, config):
     commandBuilder = f"{operation} {parameters} {config}"
 
+    # If we have more than one process, kill the older one
+    if len(processes) > 0:
+        processes.pop(0)
+
+        # Look through all process and kill all that match the bin path
+        for line in os.popen("ps ax | grep /home/pi/Documents/testing/rest-led-panel/backend/bin/ | grep -v grep"):
+            fields = line.split()
+             
+            # extracting Process ID from the output
+            pid = fields[0]
+             
+            # terminating process with pid
+            subprocess.call(['sudo', 'kill', '-9', pid])
+
     # Start a subprocess without stdout and stderr
     process = subprocess.Popen(commandBuilder, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Add the process to the list of processes
-    processes.append(process)
-    
-    # If we have more than one process, kill the older one
-    if len(processes) > 1:
-        processToKill = processes.pop(0)
-        processToKill.terminate()
+    processes.append(process)   
 
     # Respond with 200 OK
     return Response("Updated LED", status=200)
